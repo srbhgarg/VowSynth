@@ -9,3 +9,6 @@ audio_features: These files are used to compute WER on the train/test data. The 
 run_metrics: These files are used to compute STOI/PESQ and MCD scores on the generated data.
 
 ![Synthesis Network](images/network-4.png)
+
+
+![Generated Videos](videos/combine__diff_1_stretch_spec_mse_fftlen_opt_20.wmv)
