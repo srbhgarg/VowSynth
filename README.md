@@ -1,5 +1,7 @@
 # VowSynth
 
+readFiles-main: This file is to preprocess input data, convert video to landmark points
+
 train* : These files reads in input data, trains the network and save the generated test files.
 
 audio_features: These files are used to compute WER on the train/test data. The file train an ASR on the groundtruth data and then evaluates the generated tokens.
