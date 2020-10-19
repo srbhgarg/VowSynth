@@ -11,4 +11,4 @@ run_metrics: These files are used to compute STOI/PESQ and MCD scores on the gen
 ![Synthesis Network](images/network-4.png)
 
 
-[![Generated Videos](https://youtu.be/th-eFkLCIQM)]
+[![Generated Videos](https://img.youtube.com/vi/th-eFkLCIQM/maxresdefault.jpg)](https://youtu.be/th-eFkLCIQM)
