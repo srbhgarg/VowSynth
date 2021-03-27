@@ -12,3 +12,10 @@ run_metrics: These files are used to compute STOI/PESQ and MCD scores on the gen
 
 
 [![Generated Videos](https://img.youtube.com/vi/th-eFkLCIQM/maxresdefault.jpg)](https://youtu.be/th-eFkLCIQM)
+
+
+lip2Audspec: data preparation, training autoencoder and training lip2aud network. lip2audspec_autoencoder.ipynb
+
+pipeline.sh: the complete pipeline
+
+lpc and compute_formants: contains implementation of formants in tensorflow.
