@@ -18,10 +18,10 @@ lip2Audspec: data preparation, training autoencoder and training lip2aud network
 
 pipeline.sh: the complete pipeline
 1. python generate_style.py $input_file  "demographics"
-2. nohup python face_detector_mtcnn.py face_remain  &
-3. nohup python eval_san_final.py Deep-structured-facial-landmark-detection/coord_file.txt  &
+2. nohup python face_detector_mtcnn.py <filename_list>  &
+3. align=True/False; nohup python eval_san_final.py Deep-structured-facial-landmark-detection/coord_file.txt  &
 4. or cd Deep-structured-facial-landmark-detection/; source tensorflow1/bin/activate; sbatch --array=1-30 job.sh 
-5. python create_data.py
-6. 
+5. Set opt in create_data.py; python create_data.py
+6. nohup python train_audiosynthesis.py
 
 lpc and compute_formants: contains implementation of formants in tensorflow.
