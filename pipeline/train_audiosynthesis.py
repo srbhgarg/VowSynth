@@ -29,10 +29,10 @@ from librosa.core import piptrack
 
 
 ####Hyper-parameters
-batch_size=30
+batch_size=25
 region=2 # 0: jaw,  1: mouth only, 2: both mouth and jaw for landmark indices; 3: all face
 style=1 #0: no style; 1: train in plain test on plain; 2: train on plain test on clear; 3 train on clear test on plain; 4: train on clear, test on clear
-gender=1 #0: no gender; 1: train on male test on male; 2: train on male test on female; 3: train on female test on male; 4: train on female test on female
+gender=0 #0: no gender; 1: train on male test on male; 2: train on male test on female; 3: train on female test on male; 4: train on female test on female
 norm=1; #l1 or l2 norm in cost function
 data_augment=False; #augment video data
 frameCount=30
@@ -44,9 +44,9 @@ options='_cnn_crf_interpolate'
 [stylelist, vowellist, subjlist, filelist]=np.load('demographics.npy')
 [Xtrain, Xtrain_aud, Xtrain_aug] =np.load('AV_data'+options+'.npy')
 
-vidx=[i for i, value in enumerate(subjlist) if (value == '1102' or value =='1202')] #validation indices
-oidx=[i for i, value in enumerate(subjlist) if (value == '1103' or value =='1203')]  #test indices
-tidx=[x for x in range(len(subjlist)) if x not in (vidx or oidx)]
+vidx=[i for i, value in enumerate(subjlist) if (value =='1209' or value == '1109')] #validation indices
+oidx=[i for i, value in enumerate(subjlist) if (value == '1201' or value =='1203' or value=='1210' or value =='1103' or value =='1101' or value=='1110')]  #test indices
+tidx=[x for x in range(len(subjlist)) if x not in (vidx) and x not in (oidx)]
 
 #select 100 random numbers between 0 to 2829 
 #idx = np.random.choice(len(subjlist), 100, replace=False)
@@ -63,10 +63,10 @@ else:
     landmarks_indices=[*range(68)] #full face 
 
 
-mel_w=0 #weight on the mel term in spec loss
 for_w= 10 #formant term weight in loss
 grad_w= 1#grad term weight in loss
 spec_w= 1 #spectrogram term weight in loss 
+mel_w = 0#spec_w #weight on the mel term in spec loss
 #use spec loss
 spec=1 #use spec loss
 mel=0 #use mel loss
@@ -74,7 +74,7 @@ cl_learning=1
 apply_pre_emp=False #apply pre-emphasis filter
 apply_reg=False #apply reg in loss function using average spectrogram
 
-options=options+'_for_'+str(for_w)+'_spec_'+str(spec_w)+'_grad_'+str(grad_w)+'_mel_'+str(mel_w) #for model filename
+options=options+'_bsize_'+str(batch_size)+'_gender_'+str(gender)+'_style_'+str(style)+'_for_'+str(for_w)+'_spec_'+str(spec_w)+'_grad_'+str(grad_w)+'_mel_'+str(mel_w) #for model filename
 ##
 #step 3: Create Average spectrogram
 #plot spectrogram
@@ -212,7 +212,7 @@ def tflpc(y, order):
     dtype = y.dtype
     #TODO: Problem here: can not retrieve shape
     bsize=batch_size#tf.shape(y)[0]
-    tf.print("BEGIN tflpc") 
+    #tf.print("BEGIN tflpc") 
     if 1:
         global ar_coeffs
         global ar_coeffs_prev
@@ -259,7 +259,7 @@ def tflpc(y, order):
             bwd_pred_error.assign(bwd_pred_error[:,:-1])
             #print("fwd_pred_errr ", tf.shape(fwd_pred_error))
             #bwd_pred_error = tf.Variable(lambda : bwd_pred_error[:,:-1])
-        tf.print("END tflpc") 
+        #tf.print("END tflpc") 
         return ar_coeffs
     else:
         return tf.random.uniform(shape=(bsize,order+1))
@@ -273,7 +273,7 @@ def tflfilter(b,a,x_win):
     a = filter den
     x_win = batchsize x frames
     """
-    tf.print("BEGIN tflfilter") 
+    #tf.print("BEGIN tflfilter") 
     if 1:
         b=1.
         a=[1., 0.63]
@@ -296,7 +296,7 @@ def tflfilter(b,a,x_win):
             for i in range(1,tf.shape(x_win)[1]):
                 temp = tf.subtract(tf.multiply(b,tf.cast(x_win[:,i], dtype=dtype)), tf.multiply(a[1], tf.cast(y[:,i-1], dtype=dtype) ))
                 yfilt[:,i].assign(temp)
-        tf.print("END tflfilter") 
+        #tf.print("END tflfilter") 
         return yfilt
     #temp = tf.subtract(tf.multiply(b,x[i]), tf.multiply(a[1], tf.float32(y[ i-1])) ) / a[0]
                             
@@ -304,7 +304,7 @@ def tflfilter(b,a,x_win):
 rootsbs=tf.Variable(tf.zeros(shape=(batch_size, Nval), dtype=tf.complex64))
 Amat=tf.Variable(tf.zeros(tf.shape(np.diag(np.ones(Nval-2,), k=-1)), dtype=tf.float32))
 def tfroots(pbs):
-    tf.print("BEGIN tfroots") 
+    #tf.print("BEGIN tfroots") 
     #print("pbs: ", tf.shape(pbs))
     if 1:
         global rootsbs
@@ -327,7 +327,7 @@ def tfroots(pbs):
                 rootsbs[i,0:tf.shape(roots)[0]].assign(roots)
             else:
                 roots = []
-        tf.print("END tfroots") 
+        #tf.print("END tfroots") 
         return rootsbs
     else:
         return tf.random.uniform(shape=(tf.shape(pbs)))
@@ -337,7 +337,7 @@ def tfformants(x, sample_rate):
     x = batchsize x frames
     sample_rate = sampling rate of the audio signal
     """
-    tf.print("BEGIN tfformants") 
+    #tf.print("BEGIN tfformants") 
     waveform=x
     if 1:
         length=tf.shape(waveform)[1]
@@ -349,11 +349,11 @@ def tfformants(x, sample_rate):
         lpc_rep = tflpc(x_filt, 2 + int(sample_rate / 1000))
 
         roots = tfroots(lpc_rep)
-        #roots are bs x #of roots
 
         #print("roots: ", tf.shape(roots))
         angles = tf.math.atan2(tf.math.imag(roots), tf.math.real(roots))
         indices=tf.argsort(angles,axis=-1,direction='ASCENDING',stable=False,name=None)
+        ffreq=(angles * (sample_rate / (2 * np.math.pi)))
         bw = -1.0*(sample_rate/(2*np.math.pi))*tf.math.log(tf.abs(roots));
         #bw = -0.5*(sample_rate/(2*np.math.pi))*tf.math.log(tf.abs(roots));
         bwtf=tf.gather(bw,indices, axis=1)
@@ -363,8 +363,8 @@ def tfformants(x, sample_rate):
         #[frqs,indices] = tf.sort(angles*(sample_rate/(2*np.math.pi)));
         #bw = -1/2*(sample_rate/(2*np.math.pi))*tf.log(tf.abs(roots[indices]));
         #print(frqs,bw)
-        tf.print("END tfformants") 
-        return  (angles * (sample_rate / (2 * np.math.pi))), bw, indices
+        #tf.print("END tfformants") 
+        return  ffreq, bw, indices
     else:
         length=tf.shape(waveform)[1]
         hamming_win = tf.signal.hamming_window(length)
@@ -391,10 +391,20 @@ nfft = fft_len
 #Time step= 0.002s
 #Frequency step=20
 #Window shape= gaussian
-def normal_dist(x , mean , sd):
+
+def normal_dist(x , mean , sd, binwidth, tbin,spec_true_db):
+    n=tf.cast((mean/binwidth-0.5), dtype=tf.int32) # (n+1/2)*bw = fc
+    amp=spec_true_db[0, tbin,n] #pick the amp at time=time/2
+
     sd=sd+1e-6
     prob_density = (3.14*sd) * tf.math.exp(-0.5*((x-mean)/sd)**2)
-    return prob_density   
+    return tf.math.sqrt(amp)*prob_density 
+
+
+#def normal_dist(x , mean , sd):
+#    sd=sd+1e-6
+#    prob_density = (3.14*sd) * tf.math.exp(-0.5*((x-mean)/sd)**2)
+#    return prob_density   
 
 
 def tf_cov(ten):
@@ -491,7 +501,7 @@ def formant_loss(y_true, spec_true_db):
      ## FORMANT BASED LOSS TERM
     #ytrue = bs x 16384 x 1
     #resample audio pretending it is an image; height width channels
-    tf.print("BEGIN formant_loss") 
+    #tf.print("BEGIN formant_loss") 
     modaud= tf.image.resize(y_true,[batch_size,tf_sr])
 
     f_temp, bw_temp, indices=tfformants(y_true[:,:,0], tf_sr)
@@ -502,6 +512,8 @@ def formant_loss(y_true, spec_true_db):
                             indexing='ij')
     # Stack complete index
     index = tf.stack([ii, indices], axis=-1)
+    #tf.print(tf.shape(f_temp), tf.shape(index), tf.reduce_max(ii), tf.reduce_max(indices))
+    #tf.print(tf.shape(bw_temp), tf.shape(index))
     f_gt=tf.gather_nd(f_temp,index, batch_dims=0)
     bw_gt=tf.gather_nd(bw_temp,index, batch_dims=0)
 
@@ -510,54 +522,63 @@ def formant_loss(y_true, spec_true_db):
     Nbins=tf.shape(spec_true_db)[2]
     tbin=tf.cast((tf.shape(spec_true_db)[1]/2), dtype=tf.int32)
     binwidth=tf.cast(samp_rate/(2*Nbins), dtype=f_gt.dtype)
-    xspace = tf.linspace(1., 5500., num=11000)
+    xspace = tf.linspace(1., 5500., num=12000)
 
-    #replace 0 and negative numbers with a large number; idea is to pick the first positive number
-    temp=tf.where(tf.math.less_equal(f_gt[0],tf.constant([0], dtype=f_gt.dtype)), sr*tf.ones_like(f_gt[0]), f_gt[0])
+    #replace < 50hz (margin in PRAAT) with a large number; idea is to pick the first positive number
+    temp=tf.where(tf.math.less_equal(f_gt[0],tf.constant([50], dtype=f_gt.dtype)), sr*tf.ones_like(f_gt[0]), f_gt[0])
     ind=tf.argsort(tf.math.abs(temp),axis=-1,direction='ASCENDING',stable=False,name=None)
-    stidx=ind[1] #skip 0 as 0 index has 0 value
-    tf.print("Formant Values: ",temp[ind])
+    stidx=ind[0] #skip 0 as 0 index has 0 value
+    #tf.print("Formant Values: ",f_gt[0], ind, stidx)
     
+
+    if 1:
+        pdf_bs=tf.cond(stidx<Nval,lambda: normal_dist(xspace, f_gt[0,stidx], bw_gt[0,stidx], binwidth,tbin, spec_true_db),lambda: tf.zeros_like(xspace))
+        pdf_bs+=tf.cond(stidx+1<Nval,lambda: normal_dist(xspace, f_gt[0,stidx+1], bw_gt[0,stidx+1], binwidth,tbin, spec_true_db),lambda: tf.zeros_like(xspace))
+        pdf_bs+=tf.cond(stidx+2<Nval,lambda: normal_dist(xspace, f_gt[0,stidx+2], bw_gt[0,stidx+2], binwidth,tbin, spec_true_db),lambda: tf.zeros_like(xspace))
+    else:
+        n=tf.cast((f_gt[0,stidx]/binwidth-0.5), dtype=tf.int32) # (n+1/2)*bw = fc
+        amp=spec_true_db[0, tbin,n] #pick the amp at time=time/2
+        pdf_bs= tf.math.sqrt(amp)*normal_dist(xspace, f_gt[0,stidx], bw_gt[0,stidx]) #first formant
+        #tf.print("stidx0: ", stidx, amp, f_gt[0,stidx], bw_gt[0,stidx])
     
-    n=tf.cast((f_gt[0,stidx]/binwidth-0.5), dtype=tf.int32) # (n+1/2)*bw = fc
-    amp=spec_true_db[0, tbin,n] #pick the amp at time=time/2
-    pdf_bs= tf.math.sqrt(amp)*normal_dist(xspace, f_gt[0,stidx], bw_gt[0,stidx]) #first formant
-    #tf.print("stidx0: ", stidx, amp, f_gt[0,stidx], bw_gt[0,stidx])
+        n=tf.cast((f_gt[0,stidx+1]/binwidth-0.5), dtype=tf.int32) # (n+1/2)*bw = fc
+        amp=spec_true_db[0, tbin,n] #pick the amp at time=time/2
+        pdf_bs+= tf.math.sqrt(amp)*normal_dist(xspace, f_gt[0,stidx+1], bw_gt[0,stidx+1]) #second formant
+        #tf.print("stidx0: ", stidx, amp, f_gt[0,stidx+1], bw_gt[0,stidx+1])
     
-    n=tf.cast((f_gt[0,stidx+1]/binwidth-0.5), dtype=tf.int32) # (n+1/2)*bw = fc
-    amp=spec_true_db[0, tbin,n] #pick the amp at time=time/2
-    pdf_bs+= tf.math.sqrt(amp)*normal_dist(xspace, f_gt[0,stidx+1], bw_gt[0,stidx+1]) #second formant
-    #tf.print("stidx0: ", stidx, amp, f_gt[0,stidx+1], bw_gt[0,stidx+1])
-    
-    n=tf.cast((f_gt[0,stidx+2]/binwidth-0.5), dtype=tf.int32) # (n+1/2)*bw = fc
-    amp=spec_true_db[0, tbin,n] #pick the amp at time=time/2
-    pdf_bs+= tf.math.sqrt(amp)*normal_dist(xspace, f_gt[0,stidx+2], bw_gt[0,stidx+2]) #third formant
-    #tf.print("stidx0: ", stidx, amp, f_gt[0,stidx+2], bw_gt[0,stidx+2])
+        n=tf.cast((f_gt[0,stidx+2]/binwidth-0.5), dtype=tf.int32) # (n+1/2)*bw = fc
+        amp=spec_true_db[0, tbin,n] #pick the amp at time=time/2
+        pdf_bs+= tf.math.sqrt(amp)*normal_dist(xspace, f_gt[0,stidx+2], bw_gt[0,stidx+2]) #third formant
+        #tf.print("stidx0: ", stidx, amp, f_gt[0,stidx+2], bw_gt[0,stidx+2])
     
     pdf_bs=tf.expand_dims(pdf_bs, axis=0)
     for bs in range(batch_size-1):
         temp=tf.where(tf.math.less_equal(f_gt[bs+1],tf.constant([0], dtype=f_gt.dtype)), sr*tf.ones_like(f_gt[bs+1]), f_gt[bs+1])
         ind=tf.argsort(tf.math.abs(temp),axis=-1,direction='ASCENDING',stable=False,name=None)
         #ind=tf.argsort(tf.math.abs(f_gt[bs+1]),axis=-1,direction='ASCENDING',stable=False,name=None)
-        stidx=ind[1] #skip 0 as 0 index has 0 value
-
-
-        n=tf.cast((f_gt[bs+1,stidx]/binwidth-0.5), dtype=tf.int32) # (n+1/2)*bw = fc
-        amp=spec_true_db[bs+1, tbin,n] #pick the amp at time=time/2
-        pdf = tf.math.sqrt(amp)*normal_dist(xspace, f_gt[bs+1,stidx], bw_gt[bs+1,stidx])
-        #tf.print("stidx: ", bs, amp, f_gt[bs+1,stidx], bw_gt[bs+1,stidx])
-        n=tf.cast((f_gt[bs+1,stidx+1]/binwidth-0.5), dtype=tf.int32) # (n+1/2)*bw = fc
-        amp=spec_true_db[bs+1, tbin,n] #pick the amp at time=time/2
-        pdf += tf.math.sqrt(amp)*normal_dist(xspace, f_gt[bs+1,stidx+1], bw_gt[bs+1,stidx+1])
-        #tf.print("stidx: ", bs, amp, f_gt[bs+1,stidx+1], bw_gt[bs+1,stidx+1])
-        n=tf.cast((f_gt[bs+1,stidx+2]/binwidth-0.5), dtype=tf.int32) # (n+1/2)*bw = fc
-        amp=spec_true_db[bs+1, tbin,n] #pick the amp at time=time/2            
-        pdf += tf.math.sqrt(amp)*normal_dist(xspace, f_gt[bs+1,stidx+2], bw_gt[bs+1,stidx+2])
-        #tf.print("stidx: ", bs, amp, f_gt[bs+1,stidx+2], bw_gt[bs+1,stidx+2])
+        stidx=ind[0] #skip 0 as 0 index has 0 value
+        #tf.print("BS: Formant Values: ",bs, ind, stidx)
+        if 1:
+            pdf=tf.cond(stidx+0<Nval,lambda: normal_dist(xspace, f_gt[bs+1,stidx], bw_gt[bs+1,stidx], binwidth,tbin, spec_true_db),lambda: tf.zeros_like(xspace))
+            pdf+=tf.cond(stidx+1<Nval,lambda: normal_dist(xspace, f_gt[bs+1,stidx+1], bw_gt[bs+1,stidx+1], binwidth,tbin, spec_true_db),lambda: tf.zeros_like(xspace))
+            pdf+=tf.cond(stidx+2<Nval,lambda: normal_dist(xspace, f_gt[bs+1,stidx+2], bw_gt[bs+1,stidx+2], binwidth,tbin, spec_true_db),lambda:  tf.zeros_like(xspace))
+        else:
+            n=tf.cast((f_gt[bs+1,stidx]/binwidth-0.5), dtype=tf.int32) # (n+1/2)*bw = fc
+            amp=spec_true_db[bs+1, tbin,n] #pick the amp at time=time/2
+            pdf = tf.math.sqrt(amp)*normal_dist(xspace, f_gt[bs+1,stidx], bw_gt[bs+1,stidx])
+            #tf.print("stidx: ", bs, amp, f_gt[bs+1,stidx], bw_gt[bs+1,stidx])
+            n=tf.cast((f_gt[bs+1,stidx+1]/binwidth-0.5), dtype=tf.int32) # (n+1/2)*bw = fc
+            amp=spec_true_db[bs+1, tbin,n] #pick the amp at time=time/2
+            pdf += tf.math.sqrt(amp)*normal_dist(xspace, f_gt[bs+1,stidx+1], bw_gt[bs+1,stidx+1])
+            #tf.print("stidx: ", bs, amp, f_gt[bs+1,stidx+1], bw_gt[bs+1,stidx+1])
+            n=tf.cast((f_gt[bs+1,stidx+2]/binwidth-0.5), dtype=tf.int32) # (n+1/2)*bw = fc
+            amp=spec_true_db[bs+1, tbin,n] #pick the amp at time=time/2            
+            pdf += tf.math.sqrt(amp)*normal_dist(xspace, f_gt[bs+1,stidx+2], bw_gt[bs+1,stidx+2])
+            #tf.print("stidx: ", bs, amp, f_gt[bs+1,stidx+2], bw_gt[bs+1,stidx+2])
         pdf=tf.expand_dims(pdf, axis=0)
         pdf_bs=tf.concat([pdf_bs, pdf], axis=0)
     #tf.print("Vector: ", f_gt[0,stidx:])
-    tf.print("END formant_loss") 
+    #tf.print("END formant_loss") 
     return pdf_bs
     ##FORMANT BASED LOSS END
         
@@ -639,13 +660,13 @@ def spec_mse_loss(frame_step, fft_len):
         if True:
             pdf_pred = formant_loss(y_pred, X_mag_pred)
             pdf_true = formant_loss(y_true, X_mag_true)
-        tf.print("Begin loss_formant: ", tf.shape(pdf_true), tf.shape(pdf_pred)) 
+        #tf.print("Begin loss_formant: ", tf.shape(pdf_true), tf.shape(pdf_pred)) 
         #norm factor of 500..the values of loss are in thoussands
         loss_formant = mse(pdf_true, pdf_pred)/500  #1/500 is the weight
         #tf.print(pdf_true)
         #tf.print(pdf_pred)
-
-        loss_formant = tf.clip_by_value(loss_formant,0, 60)
+        tf.print("Loss formant without normalization: ", tf.math.log(loss_formant))
+        loss_formant = tf.clip_by_value(tf.math.log(loss_formant),0, 60)
         #print(np.shape(pdf_bs)," spec_pred ", print(tf.shape(spec_true_db)))
         
         #f_gt = 32 x 19, bw_gt=32x19
@@ -653,10 +674,10 @@ def spec_mse_loss(frame_step, fft_len):
         #mse of spec is in 100s and mse of grad is in range 3
         #loss_mel = mel_mse_loss(np.int32(np.round(sr*0.002*4)), 128)
         loss_mel = mel_mse_loss(frame_step, fft_len)
-        tf.print("formants: ", loss_formant," mean: ", mse(grad_predict, grad_true), mse(spec_pred_db, spec_true_db), tf.math.reduce_mean(loss_mel(y_true,y_pred)))
+        tf.print("formants: ", loss_formant," mean: ", mse(grad_predict, grad_true)/10, mse(spec_pred_db, spec_true_db)/20, tf.math.reduce_mean(loss_mel(y_true,y_pred))/5)
         
 
-        return for_w*loss_formant + grad_w*mse(grad_predict, grad_true)+ spec_w* mse(spec_pred_db, spec_true_db) +mel_w* tf.math.reduce_mean(loss_mel(y_true,y_pred))
+        return for_w*loss_formant + grad_w*mse(grad_predict, grad_true)/10+ spec_w* mse(spec_pred_db, spec_true_db)/20 +mel_w* tf.math.reduce_mean(loss_mel(y_true,y_pred))/5
         #return  K.mean(K.sum(K.square(K.abs(spec_pred_db - spec_true_db)), axis=1),axis=-1) +reg_term
     return spec_loss
 
@@ -836,15 +857,17 @@ else:
 
 #bs x frameCount x landmark_indices*2
 #apply which coordinates/rois to use for training
-Xtrain_vid_all = Xtrain_vid_all[0:600,:,np.concatenate((landmarks_indices,np.array(landmarks_indices)+68))]
-Xtrain_aud_all=Xtrain_aud_all[0:600]
-print(np.shape(Xtrain_aud_all), np.shape(Xtrain_vid_all), np.shape(val_idx))
+print("Before: ", np.shape(Xtrain_aud_all), np.shape(Xtrain_vid_all), np.shape(val_idx))
+Xtrain_vid_all = Xtrain_vid_all[0:875,:,np.concatenate((landmarks_indices,np.array(landmarks_indices)+68))]
+Xtrain_aud_all=Xtrain_aud_all[0:875]
 
 
 #configure these
 Xtrain_aud_val=np.asarray(np.stack(Xtrain_aud).astype(np.float32))[val_idx]
 Xtrain_vid_val=np.asarray(np.stack(Xtrain).astype(np.float32))[val_idx]
-Xtrain_vid_val = Xtrain_vid_val[:,:,np.concatenate((landmarks_indices,np.array(landmarks_indices)+68))]
+Xtrain_vid_val = Xtrain_vid_val[0:175,:,np.concatenate((landmarks_indices,np.array(landmarks_indices)+68))]
+Xtrain_aud_val=Xtrain_aud_all[0:175]
+print("After: ",np.shape(Xtrain_aud_all), np.shape(Xtrain_vid_all), np.shape(Xtrain_vid_val))
 
 outfolder='./results/'
 fname='best_model'
@@ -876,7 +899,7 @@ if cl_learning:
         generator.compile(loss=spec_mse_loss(np.int32(np.round(sr*0.002*4)), 512/4), optimizer=gopt,metrics=['mse'])
         history1 = generator.fit(Xtrain_vid_all, Xtrain_aud_all,
                             batch_size=batch_size,
-                            epochs=200,
+                            epochs=150,
                             validation_data=(Xtrain_vid_val, Xtrain_aud_val),
                             verbose=2,
                             callbacks=C1)
@@ -885,7 +908,7 @@ if cl_learning:
         generator.compile(loss=mel_mse_loss(np.int32(np.round(sr*0.002*4)), 512/4), optimizer=gopt,metrics=['mse'])
         history1_1 = generator.fit(Xtrain_vid_all, Xtrain_aud_all,
                             batch_size=batch_size,
-                            epochs=200,
+                            epochs=150,
                             validation_data=(Xtrain_vid_val, Xtrain_aud_val),
                             verbose=2,
                             callbacks=[])
@@ -896,7 +919,7 @@ if cl_learning:
         generator.compile(loss=spec_mse_loss(np.int32(np.round(sr*0.002*2)), 512/2), optimizer=gopt,metrics=['mse'])
         history2 = generator.fit(Xtrain_vid_all, Xtrain_aud_all,
                             batch_size=batch_size,
-                            epochs=200,
+                            epochs=150,
                             validation_data=(Xtrain_vid_val, Xtrain_aud_val),
                             verbose=2,
                             callbacks=C2)
@@ -906,7 +929,7 @@ if cl_learning:
         generator.compile(loss=mel_mse_loss(np.int32(np.round(sr*0.002*4)), 512/4), optimizer=gopt,metrics=['mse'])
         history2_2 = generator.fit(Xtrain_vid_all, Xtrain_aud_all,
                             batch_size=batch_size,
-                            epochs=300,
+                            epochs=150,
                             validation_data=(Xtrain_vid_val, Xtrain_aud_val),
                             verbose=2,
                             callbacks=[])
@@ -916,7 +939,7 @@ if cl_learning:
         generator.compile(loss=spec_mse_loss(np.int32(np.round(sr*0.002)), 512), optimizer=gopt,metrics=['mse'])
         history3 = generator.fit(Xtrain_vid_all, Xtrain_aud_all,
                             batch_size=batch_size,
-                            epochs=300,
+                            epochs=200,
                             validation_data=(Xtrain_vid_val, Xtrain_aud_val),
                             verbose=2,
                             callbacks=C3)
@@ -925,7 +948,7 @@ if cl_learning:
         generator.compile(loss=mel_mse_loss(np.int32(np.round(sr*0.002*4)), 512/4), optimizer=gopt,metrics=['mse'])
         history3_3 = generator.fit(Xtrain_vid_all, Xtrain_aud_all,
                             batch_size=batch_size,
-                            epochs=300,
+                            epochs=200,
                             validation_data=(Xtrain_vid_val, Xtrain_aud_val),
                             verbose=2,
                             callbacks=[])
