@@ -23,5 +23,7 @@ pipeline.sh: the complete pipeline
 4. or cd Deep-structured-facial-landmark-detection/; source tensorflow1/bin/activate; sbatch --array=1-30 job.sh 
 5. Set opt in create_data.py; python create_data.py
 6. nohup python train_audiosynthesis.py
+7. python -i test_audiosynthesis.py
+8. python -i get_asr.py
 
 lpc and compute_formants: contains implementation of formants in tensorflow.
