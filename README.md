@@ -1,5 +1,10 @@
 # VowSynth
 
+## Abstract ##
+Humans use both auditory and facial cues to perceive speech, especially when auditory input is degraded, indicating a direct association between visual articulatory and acoustic speech information. This study investigates how well an audio signal of a word can be synthesized based on visual speech cues. Specifically, we synthesized audio waveforms of the vowels in monosyllabic  English words from motion trajectories extracted from image sequences in the video recordings of the same words. The articulatory movements were recorded in two different speech styles: plain and clear. We designed a deep network  trained on mouth landmark motion trajectories on a spectrogram and formant-based custom loss for different speech styles separately. Human and automatic evaluation show that our framework using visual cues can generate identifiable audio of the target vowels from distinct mouth landmark movements. Our results show that the intelligible audio can be synthesized on unseen speakers that were not part of the training data.
+
+## Notes ##
+
 readFiles-main: This file is to preprocess input data, convert video to landmark points
 
 train* : These files reads in input data, trains the network and save the generated test files.
