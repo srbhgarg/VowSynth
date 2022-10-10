@@ -1,3 +1,4 @@
+#to get PESQ STOI scores from the audio
 import random
 random.seed(5)
 import numpy as np

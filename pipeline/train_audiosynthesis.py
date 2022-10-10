@@ -28,7 +28,7 @@ from librosa.core import piptrack
 #import tensorflow_probability as tfp
 
 
-####Hyper-parameters
+####Hyper-parameters used
 batch_size=25
 region=2 # 0: jaw,  1: mouth only, 2: both mouth and jaw for landmark indices; 3: all face
 style=1 #0: no style; 1: train in plain test on plain; 2: train on plain test on clear; 3 train on clear test on plain; 4: train on clear, test on clear

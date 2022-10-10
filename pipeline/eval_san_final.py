@@ -1,4 +1,4 @@
-#run face_detector_mtcnn before running this file
+# run face_detector_mtcnn before running this file
 import sys
 import os
 import numpy as np

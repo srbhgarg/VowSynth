@@ -19,7 +19,7 @@ frameCount=30
 rate=16000
 X_out=[]
 
-#hyperparameter
+# Hyperparameter
 include_phase=2 #0 = griffin_lim, 1=template phase, 2= both
 
 

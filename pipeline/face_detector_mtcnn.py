@@ -1,7 +1,4 @@
 
-# coding: utf-8
-
-
 #This is the main preprocessing file. This file saves face coordinates in separate file. output file: [filename]_face_coord.npy
 import cv2
 import tensorflow as tf
