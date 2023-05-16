@@ -32,3 +32,5 @@ pipeline.sh: the complete pipeline
 8. python -i get_asr.py
 
 lpc and compute_formants: contains implementation of formants in tensorflow.
+
+Note: The videos in the "videos" folder are sample generated audios by the model from the lip movements that are then overlaid on the actual video manually.
