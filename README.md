@@ -34,3 +34,17 @@ pipeline.sh: the complete pipeline
 lpc and compute_formants: contains implementation of formants in tensorflow.
 
 Note: The videos in the "videos" folder are sample generated audios by the model from the lip movements that are then overlaid on the actual video manually.
+
+## Reference ##
+if you use this for research publications, please cite:
+```
+@article{article,
+year = {2023},
+month = {05},
+pages = {1-16},
+title = {Mouth2Audio: intelligible audio synthesis from videos with distinctive vowel articulation},
+journal = {International Journal of Speech Technology},
+doi = {10.1007/s10772-023-10030-3}
+}
+```
+https://link.springer.com/article/10.1007/s10772-023-10030-3
